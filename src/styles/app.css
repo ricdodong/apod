@@ -1,0 +1,10 @@
+:root{--accent:#e74c3c}
+body{font-family:Inter, system-ui, Arial, sans-serif; margin:0; padding-bottom:96px}
+.hero{padding:48px; text-align:center; background:linear-gradient(90deg,#0f172a,#1e293b); color:white}
+.logo{width:120px}
+.content{padding:28px}
+.player-bar{position:fixed; left:0; right:0; bottom:0; height:72px; background:rgba(20,20,20,0.95); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 18px; box-shadow:0 -6px 24px rgba(0,0,0,0.5)}
+.player-left{display:flex; flex-direction:column}
+.now-playing{font-weight:700}
+.player-controls button{padding:10px 16px; border-radius:8px; border:none; cursor:pointer}
+@media(min-width:768px){ .player-bar{height:80px} }

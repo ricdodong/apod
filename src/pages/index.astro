@@ -1,0 +1,30 @@
+---
+import Header from '../components/Header.jsx';
+import Player from '../components/Player.jsx';
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RicalgenFM — Your Online Radio Station</title>
+    <link rel="stylesheet" href="/src/styles/global.css">
+  </head>
+  <body class="page-with-player">
+    <Header />
+
+    <main class="container mx-auto px-6 py-12">
+      <h1 class="text-4xl font-bold mb-4">RicalgenFM</h1>
+      <p class="max-w-2xl mb-6">Your Online Radio Station — stream live, check the currently playing track, see shows and schedules.</p>
+
+      <!-- Example content cards -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-6 bg-white/5 rounded-2xl">About RicalgenFM</div>
+        <div class="p-6 bg-white/5 rounded-2xl">Schedule</div>
+        <div class="p-6 bg-white/5 rounded-2xl">Contact</div>
+      </section>
+    </main>
+
+    <!-- React Player mounted via Astro component -->
+    <Player />
+  </body>
+</html>
