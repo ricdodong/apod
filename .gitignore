@@ -1,6 +1,8 @@
 # build output
 dist/
-.cache
+# generated types
+.astro/
+
 # dependencies
 node_modules/
 
@@ -18,8 +20,5 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
-# Astro
-.astro/
-
-# VScode
-.vscode/
+# jetbrains setting folder
+.idea/
