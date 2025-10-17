@@ -1,15 +1,21 @@
 ---
 import Player from "../components/Player.jsx";
-import "../assets/styles.css";
 ---
 
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ricalgen FM Player</title>
+    <meta charset="UTF-8" />
+    <title>Ricalgen FM</title>
+    
   </head>
   <body>
-    <Player />
+    <!-- Mount the React player -->
+    <Player client:load />
+    <!-- 
+      client:load → loads the component only on the client after page load
+      You can also use:
+      client:idle → load when browser is idle
+      client:visible → load when component is visible
+    -->
   </body>
 </html>

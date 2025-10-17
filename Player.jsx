@@ -191,6 +191,7 @@ export default function Player() {
         </div>
       </div>
       <audio ref={audioRef}></audio>
+      
     </div>
   );
 }
