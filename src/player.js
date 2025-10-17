@@ -6,64 +6,49 @@ export default async function initPlayer({
     fgEl,
     placeholderEl,
     stationNameEl,
-    titleEl,
     btnPlayEl,
     volEl,
     statusEl,
-    socialsEl,
-    liveIndicatorEl,
     volIconEl,
     setTitle,
     setStatus,
     setPlaying,
   }) {
+    if (!audioEl || !canvasEl) return;
+  
     const audio = audioEl;
     const canvas = canvasEl;
     const bg = bgEl;
     const fg = fgEl;
     const placeholder = placeholderEl;
     const stationName = stationNameEl;
-    const title = titleEl;
     const btnPlay = btnPlayEl;
     const vol = volEl;
     const status = statusEl;
-    const socials = socialsEl;
-    const liveIndicator = liveIndicatorEl;
     const volIcon = volIconEl;
   
     const ytKey = "AIzaSyC0gsNZZ_igtiP2CTjxrN62MP_MB2PIaVU";
     const mount = "wngolqwah00tv";
     const stationId = "6a97e483-6f54-4ef8-aee3-432441265aed";
   
-    // ---------- SOCIALS ----------
-    const icons = { /* same SVGs as before */ };
-    const socialsData = {
-      facebook: "https://facebook.com/ricalgenfm",
-      twitter: "https://twitter.com/ricalgenfm",
-      instagram: "https://instagram.com/ricalgenfm",
-      youtube: "https://youtube.com/ricalgenfm",
-    };
-    socials.innerHTML = Object.entries(socialsData)
-      .map(([key, url]) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${icons[key]}</a>`)
-      .join(" ");
-  
     // ---------- AUDIO SETUP ----------
     audio.crossOrigin = "anonymous";
-    audio.volume = parseFloat(vol.value || "1");
+    audio.volume = parseFloat(vol?.value || 1);
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
     const src = audioCtx.createMediaElementSource(audio);
     src.connect(analyser);
     analyser.connect(audioCtx.destination);
     analyser.fftSize = 512;
+  
     const freqData = new Uint8Array(analyser.frequencyBinCount);
     const smoothArray = new Array(analyser.frequencyBinCount).fill(0);
     let visualizerInitialized = false;
-    const artCache = new Map();
-    let eventSource = null;
+    let currentSongTitle = "";
   
     // ---------- UI HELPERS ----------
     function setBackground(url) {
+      if (!bg) return;
       if (!url) {
         bg.style.opacity = "0";
         bg.style.backgroundImage = "";
@@ -79,6 +64,7 @@ export default async function initPlayer({
     }
   
     function setForeground(url) {
+      if (!fg || !placeholder) return;
       if (!url) {
         fg.style.opacity = "0";
         placeholder.style.display = "flex";
@@ -97,26 +83,48 @@ export default async function initPlayer({
       }, 180);
     }
   
-    function updateTitle(text, marquee = false) {
-      if (setTitle) return setTitle(text);
-      if (marquee) title.innerHTML = `<span class="marquee">${text}</span>`;
-      else title.textContent = text;
+    function updateTitle(text) {
+      currentSongTitle = text;
+      if (setTitle) setTitle(text);
+    }
+  
+    function updateStatus(text) {
+      if (setStatus) setStatus(text);
+    }
+  
+    function updatePlaying(isPlaying) {
+      if (setPlaying) setPlaying(isPlaying);
     }
   
     // ---------- FETCH FUNCTIONS ----------
     async function fetchStation(stationId) {
-      // same as before, return { id, title, logo, streamURL }
+      try {
+        const resp = await fetch(`https://zenoplay.zenomedia.com/api/zenofm/stations/${stationId}/`);
+        if (!resp.ok) throw new Error("Station fetch failed");
+        const data = await resp.json();
+        const logo = `https://proxy.zeno.fm/content/stations/${data.objectID}/image/?u=${data.updated || ""}`;
+        let streamURL = `https://stream.zeno.fm/${mount}`;
+        if (data.live_streams?.length) {
+          const live = data.live_streams.find(s => s.url && ["mp3", "aac"].includes(s.type));
+          if (live?.url) streamURL = live.url;
+        }
+        return { id: data.objectID, title: data.station_name, logo, streamURL };
+      } catch {
+        return { id: stationId, title: stationId, logo: "", streamURL: `https://stream.zeno.fm/${mount}` };
+      }
     }
   
     async function fetchArtwork(title, stationLogo) {
-      // same as before
+      // Simple placeholder logic: use station logo for now
+      return stationLogo || "";
     }
   
     // ---------- VISUALIZER ----------
     function initVisualizer() {
-      if (visualizerInitialized) return;
+      if (!canvas || visualizerInitialized) return;
       visualizerInitialized = true;
       const ctx = canvas.getContext("2d");
+  
       function drawBars() {
         requestAnimationFrame(drawBars);
         canvas.width = canvas.clientWidth;
@@ -142,33 +150,61 @@ export default async function initPlayer({
   
     // ---------- INIT ----------
     const station = await fetchStation(stationId);
-    stationName.textContent = station.title || "Station";
+    if (stationName) stationName.textContent = station.title || "Station";
     setBackground(station.logo);
     setForeground(station.logo);
-    updateTitle("Click Play to Start", false);
+    updateTitle("Click Play to Start");
     audio.src = station.streamURL || `https://stream.zeno.fm/${mount}`;
   
-    btnPlay.addEventListener("click", async () => {
-      if (audioCtx.state === "suspended") await audioCtx.resume();
-      if (audio.paused) {
-        await audio.play().catch(console.warn);
-        btnPlay.textContent = "⏸";
-        status.textContent = "Playing live";
-        initVisualizer();
-        const art = await fetchArtwork(title.textContent, station.logo);
-        setBackground(art);
-        setForeground(art);
-        if (setPlaying) setPlaying(true);
-      } else {
-        audio.pause();
-        btnPlay.textContent = "▶";
-        status.textContent = "Paused";
-        setBackground(station.logo);
-        setForeground(station.logo);
-        if (setPlaying) setPlaying(false);
-      }
-    });
+    // Play button
+    if (btnPlay) {
+      btnPlay.addEventListener("click", async () => {
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        if (audio.paused) {
+          await audio.play().catch(console.warn);
+          btnPlay.textContent = "⏸";
+          updateStatus("Playing live");
+          initVisualizer();
+          const art = await fetchArtwork(currentSongTitle, station.logo);
+          setBackground(art);
+          setForeground(art);
+          updatePlaying(true);
+        } else {
+          audio.pause();
+          btnPlay.textContent = "▶";
+          updateStatus("Paused");
+          setBackground(station.logo);
+          setForeground(station.logo);
+          updatePlaying(false);
+        }
+      });
+    }
   
-    // Volume logic remains the same, just replace `els.*` with props
+    // Volume
+    function updateVolIcon() {
+      if (!volIcon) return;
+      if (audio.muted || audio.volume === 0) volIcon.textContent = "🔇";
+      else if (audio.volume < 0.5) volIcon.textContent = "🔉";
+      else volIcon.textContent = "🔊";
+    }
+  
+    if (vol) {
+      vol.addEventListener("input", e => {
+        const v = Math.min(Math.max(parseFloat(e.target.value), 0), 1);
+        audio.volume = v;
+        audio.muted = v === 0;
+        updateVolIcon();
+      });
+    }
+  
+    if (volIcon) {
+      volIcon.addEventListener("click", () => {
+        audio.muted = !audio.muted;
+        if (vol) vol.value = audio.muted ? 0 : audio.volume;
+        updateVolIcon();
+      });
+    }
+  
+    updateVolIcon();
   }
   

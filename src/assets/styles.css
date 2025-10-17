@@ -375,7 +375,7 @@
 }
 
 .speaker {
-    position: absolute;
+    position: relative;
     aspect-ratio: 1/1;
     top: 50%;
     left: 50%;
@@ -383,12 +383,17 @@
     background-size: contain;
 }
 
-.speaker.center {
-    width: 30%;
-    background-image: url(speaker-3.webp);
-    filter: blur(0.2vmin);
-}
 
+.speaker.center {
+    position: absolute;
+    width: 31%;
+    background-image: url(speaker-3.webp);
+    filter: blur(0.2vmin); /* important! */
+    top: 50%;           /* move to vertical middle of parent */
+    left: 50%;          /* move to horizontal middle of parent */
+    transform: translate(-50%, -50%); /* offset by half its own size */
+  }
+  
 /* Center animation only runs if 'animating' is added */
 
 .speaker.center.animating {
@@ -399,14 +404,15 @@
 }
 
 .speaker.border {
+    position: absolute;
     width: 90%;
     background-image: url(speaker-1.webp);
     filter: blur(0.1vmin);
 }
 
 .speaker.inside {
-    position: absolute;
-    width: 76%;
+    position: relative;
+    width: 66%;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -417,7 +423,7 @@
 }
 
 .speaker.inside2 {
-    position: absolute;
+    position: relative;
     width: 37%;
     top: 50%;
     border-radius: 50%;
