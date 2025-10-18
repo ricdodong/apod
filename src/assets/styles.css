@@ -387,7 +387,7 @@
 .speaker.center {
     position: absolute;
     width: 31%;
-    background-image: url(speaker-3.webp);
+    background-image: url(/speaker-3.webp);
     filter: blur(0.2vmin); /* important! */
     top: 50%;           /* move to vertical middle of parent */
     left: 50%;          /* move to horizontal middle of parent */
@@ -406,7 +406,7 @@
 .speaker.border {
     position: absolute;
     width: 90%;
-    background-image: url(speaker-1.webp);
+    background-image: url(/speaker-1.webp);
     filter: blur(0.1vmin);
 }
 
@@ -416,7 +416,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-image: url("speaker-2.webp");
+    background-image: url(/speaker-2.webp);
     background-size: contain;
     background-repeat: no-repeat;
     transition: transform 0.05s ease-out;
