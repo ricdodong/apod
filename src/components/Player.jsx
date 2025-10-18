@@ -1,5 +1,7 @@
+// src/components/Player.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "../assets/styles.css";
+import { cacheArtwork } from "../utils/cacheArtwork"; // <--- new
 
 const socialsData = {
   facebook: "https://facebook.com/ricalgenfm",
@@ -49,34 +51,35 @@ export default function Player() {
   useEffect(() => {
     const audio = audioRef.current;
     const canvas = canvasRef.current;
+    const fg = fgRef.current;
     if (!audio || !canvas) return;
-  
+
     audio.crossOrigin = "anonymous";
-  
+
     // 🎧 VISUALIZER
     if (!audioCtxRef.current) {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = audioCtx;
-  
+
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
       analyserRef.current = analyser;
-  
+
       const src = audioCtx.createMediaElementSource(audio);
       src.connect(analyser);
       analyser.connect(audioCtx.destination);
-  
+
       const freqData = new Uint8Array(analyser.frequencyBinCount);
       const smoothArray = new Array(analyser.frequencyBinCount).fill(0);
       const ctx = canvas.getContext("2d");
-  
+
       const draw = () => {
         requestAnimationFrame(draw);
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         analyser.getByteFrequencyData(freqData);
-  
+
         let x = 0;
         const barWidth = canvas.width / freqData.length;
         for (let i = 0; i < freqData.length; i++) {
@@ -90,7 +93,7 @@ export default function Player() {
           ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
           x += barWidth + 1;
         }
-  
+
         const bass = freqData.slice(1, 10);
         const mids = freqData.slice(15, 80);
         setBassLevel(bass.reduce((a, b) => a + b, 0) / bass.length / 255);
@@ -98,100 +101,116 @@ export default function Player() {
       };
       draw();
     }
-  
-    // 🎵 Spotify Token (single function)
+
+    // 🎵 Fetch Spotify Token (from backend route)
     async function fetchSpotifyToken() {
       try {
+        console.log("🎫 Fetching Spotify token...");
         const res = await fetch("/api/spotify-token");
         const data = await res.json();
-        return data.access_token || null;
+        console.log("✅ Spotify token received:", !!data.access_token);
+        return data.access_token;
       } catch (err) {
-        console.error("Failed to fetch Spotify token:", err);
+        console.error("❌ Failed to fetch Spotify token:", err);
         return null;
       }
     }
-  
-    // 🎵 Spotify artwork fetch
+
+    // 🎵 Spotify search fallback
     async function fetchSpotifyArtwork(songTitle) {
-      const token = await fetchSpotifyToken();
-      if (!token) return null;
-      const query = encodeURIComponent(songTitle);
-      const res = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      return data.tracks?.items?.[0]?.album?.images?.[0]?.url || null;
+      try {
+        console.log("🎶 Searching Spotify for:", songTitle);
+        const token = await fetchSpotifyToken();
+        if (!token) return null;
+
+        const query = encodeURIComponent(songTitle);
+        const res = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        const artUrl = data.tracks?.items?.[0]?.album?.images?.[0]?.url || null;
+        console.log("🖼️ Spotify artwork found:", artUrl);
+        return artUrl;
+      } catch (err) {
+        console.warn("⚠️ Spotify artwork fetch error:", err);
+        return null;
+      }
     }
-  
-    // 🎬 YouTube artwork
+
+    // 🎬 YouTube artwork (primary)
     async function fetchYouTubeArtwork(songTitle) {
       try {
         const query = encodeURIComponent(songTitle);
         const ytKey = "AIzaSyC0gsNZZ_igtiP2CTjxrN62MP_MB2PIaVU";
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${ytKey}&maxResults=1`);
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${ytKey}&maxResults=1`;
+
+        const res = await fetch(url);
         const data = await res.json();
+
         const video = data.items?.[0];
-        return video?.snippet?.thumbnails?.high?.url || video?.snippet?.thumbnails?.medium?.url || null;
-      } catch {
+        const thumb =
+          video?.snippet?.thumbnails?.high?.url ||
+          video?.snippet?.thumbnails?.medium?.url ||
+          video?.snippet?.thumbnails?.default?.url ||
+          null;
+
+        console.log("📺 YouTube artwork found:", thumb);
+        return thumb;
+      } catch (err) {
+        console.warn("⚠️ YouTube artwork fetch error:", err);
         return null;
       }
     }
-  
-    // 🖼️ Cache artwork
-    async function cacheArtwork(songTitle, artUrl) {
-      try {
-        const safeTitle = songTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const localPath = `/artworks/${safeTitle}.jpg`;
-        const check = await fetch(localPath, { method: "HEAD" });
-        if (check.ok) return localPath;
-  
-        const res = await fetch("/api/save-artwork", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: artUrl, title: songTitle }),
-        });
-        const data = await res.json();
-        return data.url || artUrl;
-      } catch {
-        return artUrl;
-      }
-    }
-  
-    // 🖼️ Unified artwork selector
+
+    // 🖼️ Unified artwork selector — YouTube → Spotify → Fallback
     async function getArtwork(songTitle) {
+      // YouTube first (primary)
       let art = await fetchYouTubeArtwork(songTitle);
-      if (art) return cacheArtwork(songTitle, art);
-  
+      if (art) return await cacheArtwork(songTitle, art);
+
+      console.log("⚠️ No YouTube art — trying Spotify...");
       art = await fetchSpotifyArtwork(songTitle);
-      if (art) return cacheArtwork(songTitle, art);
-  
+      if (art) return await cacheArtwork(songTitle, art);
+
+      console.log("⚠️ No Spotify art — using fallback station logo.");
       return "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
     }
-  
-    // 🎶 Now Playing Metadata
+
+    // 🎶 Now Playing Metadata via EventSource
     const source = new EventSource("https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv");
     source.onmessage = async (event) => {
-      const data = JSON.parse(event.data);
-      const songTitle = data.streamTitle || data.title || "";
-      if (!songTitle) return;
-  
-      setTitle(songTitle);
-      document.title = `🎶 ${songTitle} | Ricalgen FM`;
-  
-      const art = await getArtwork(songTitle);
-      if (art && fgRef.current && bgRef.current) {
-        fgRef.current.style.backgroundImage = `url(${art})`;
-        bgRef.current.style.backgroundImage = `url(${art})`;
-        bgRef.current.style.opacity = "1";
-        fgRef.current.classList.add("show");
-        bgRef.current.classList.add("animate");
+      try {
+        const data = JSON.parse(event.data);
+        let songTitle = data.streamTitle || data.title || "";
+        if (!songTitle) return;
+
+        console.log("📻 Now playing:", songTitle);
+        setTitle(songTitle);
+        document.title = `🎶 ${songTitle} | Ricalgen FM`;
+
+        const art = await getArtwork(songTitle);
+
+        if (art && fgRef.current && bgRef.current) {
+          const fg = fgRef.current;
+          const bg = bgRef.current;
+          fg.style.backgroundImage = `url(${art})`;
+          bg.style.backgroundImage = `url(${art})`;
+          bg.style.opacity = "1";
+          fg.classList.add("show");
+          bg.classList.add("animate");
+          console.log("✅ Artwork applied successfully!");
+        } else {
+          console.log("⚠️ No artwork found for:", songTitle);
+        }
+      } catch (err) {
+        console.warn("⚠️ Metadata parse error:", err);
       }
     };
-  
-    source.onerror = (err) => console.warn("Zeno metadata error:", err);
+
+    source.onerror = (err) => console.warn("❌ Zeno metadata error:", err);
     return () => source.close();
   }, []);
-  
 
   // 🔊 Volume
   useEffect(() => {
@@ -203,8 +222,8 @@ export default function Player() {
     const audioCtx = audioCtxRef.current;
     if (!audio || !audioCtx) return;
     if (audioCtx.state === "suspended") await audioCtx.resume();
-if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
 
+    if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
     try {
       if (audio.paused) {
         await audio.play();
@@ -266,7 +285,7 @@ if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
                   bassLevel > 0.78 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none",
                 transform: `translate(-50%, -50%) scale(${
                   1.2 + Math.min(Math.max((pianoLevel - 0.345) / (0.656 - 0.345), 0), 1) * 0.03
-                })`, 
+                })`,
               }}
             ></div>
             <div
@@ -296,7 +315,6 @@ if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
           <div className="meta-version">Ricalgen FM player</div>
         </div>
       </div>
-  
       <audio ref={audioRef}></audio>
     </div>
   );
