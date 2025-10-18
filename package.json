@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.10",
+    "@astrojs/netlify": "^6.5.13",
     "@astrojs/node": "^9.5.0",
     "@astrojs/react": "^4.4.0",
     "astro": "^5.14.5",

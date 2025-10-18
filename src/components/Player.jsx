@@ -203,8 +203,8 @@ export default function Player() {
     const audioCtx = audioCtxRef.current;
     if (!audio || !audioCtx) return;
     if (audioCtx.state === "suspended") await audioCtx.resume();
+if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
 
-    if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
     try {
       if (audio.paused) {
         await audio.play();
@@ -223,7 +223,10 @@ export default function Player() {
   return (
     <div className="player-wrap">
       <div className="bg" ref={bgRef}></div>
-      <div className="card">
+      <div className="card" style={{
+                boxShadow:
+                  bassLevel > 0.79 ? "0 18px 45px rgba(113, 24, 226, 1)" : "0 18px 45px rgba(0, 0, 0, 0.6)", 
+              }}>
         <div className="header">
           <div className="station">Ricalgen FM</div>
           <div className="live"><span className="dot"></span>LIVE</div>
@@ -263,7 +266,7 @@ export default function Player() {
                   bassLevel > 0.78 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none",
                 transform: `translate(-50%, -50%) scale(${
                   1.2 + Math.min(Math.max((pianoLevel - 0.345) / (0.656 - 0.345), 0), 1) * 0.03
-                })`,
+                })`, 
               }}
             ></div>
             <div
@@ -293,6 +296,7 @@ export default function Player() {
           <div className="meta-version">Ricalgen FM player</div>
         </div>
       </div>
+  
       <audio ref={audioRef}></audio>
     </div>
   );
