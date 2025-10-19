@@ -478,8 +478,10 @@
   .main {
     flex-direction: row;
     gap: 12px;
-      height: 480px;
   }
+    .card {
+        height:400px;
+    }
   .controls-wrap {
     width: 250px;
   }
