@@ -471,6 +471,34 @@
         font-size: 13px;
     }
 }
+
+
+/* FORCE mobile layout when screen is short (landscape phones) */
+@media (max-height: 500px) {
+  .main {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .controls-wrap {
+    width: 250px;
+  }
+  .title {
+    width: 250px;
+  }
+  .artwork,
+  .speaker-wrapper {
+    width: 200px;
+    height: 200px;
+    flex: 0 0 200px;
+  }
+  .vol {
+    width: 160px;
+  }
+}
+
+
+
+
 .speaker-wrapper {
     width: 250px;
     height: 250px;
