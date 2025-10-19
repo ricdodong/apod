@@ -302,20 +302,20 @@
 /* Tablet / small laptop */
 @media (max-width: 980px) {
     .card {
-        max-width: 1050px;  /* prevent forced desktop scaling */
+        max-width: 980px;  /* prevent forced desktop scaling */
     }
 
     .artwork {
-        width: 220px;
-        height: 220px;
+        width: 200px;
+        height: 200px;
         border-radius: 12px;
         box-shadow: 0 14px 28px rgba(0,0,0,0.45);
     }
 
     .speaker-wrapper {
-        width: 220px;
-        height: 220px;
-        flex: 0 0 220px;
+        width: 200px;
+        height: 200px;
+        flex: 0 0 200px;
 }
     
     
@@ -336,7 +336,7 @@
     }
 
     .title {
-        max-width: 280px;
+        max-width: 200px;
     }
 }
 
