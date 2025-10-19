@@ -303,6 +303,7 @@
 @media (max-width: 980px) {
     .card {
         max-width: 980px;  /* prevent forced desktop scaling */
+   min-height:640px;
     }
 
     .artwork {
