@@ -589,15 +589,15 @@
   }
 
   .artwork {
-    width: 180px;
-    height: 180px;
-    flex: 0 0 180px;
+    width: 200px;
+    height: 200px;
+    flex: 0 0 200px;
   }
     
   .speaker-wrapper {
-    width: 180px;
-    height: 180px;
-    flex: 0 0 180px;
+    width: 200px;
+    height: 200px;
+    flex: 0 0 200px;
   }
 
   .meta {
@@ -621,6 +621,7 @@
   .card {
     padding: 10px;
     margin: 8px auto;
+      width:100%;
   }
 }
 
