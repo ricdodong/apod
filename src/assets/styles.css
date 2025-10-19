@@ -305,6 +305,20 @@
         max-width: 100%;  /* prevent forced desktop scaling */
     }
 
+    .artwork {
+        width: 220px;
+        height: 220px;
+        border-radius: 12px;
+        box-shadow: 0 14px 28px rgba(0,0,0,0.45);
+    }
+
+    .speaker-wrapper {
+        width: 220px;
+        height: 220px;
+        flex: 0 0 220px;
+}
+    
+    
     .main {
         flex-wrap: nowrap;   /* stack instead of side-by-side */
         align-items: center;
