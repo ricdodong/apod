@@ -1,7 +1,7 @@
 // src/components/Player.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "../assets/styles.css";
-import { cacheArtwork } from "../utils/cacheArtwork"; // <--- new
+import { cacheArtwork } from "../utils/cacheArtwork"; // ensure this exists and returns local path or original URL
 
 const socialsData = {
   facebook: "https://facebook.com/ricalgenfm",
@@ -48,10 +48,14 @@ export default function Player() {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
 
+  // fallback station logo
+  const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
+
   useEffect(() => {
     const audio = audioRef.current;
     const canvas = canvasRef.current;
     const fg = fgRef.current;
+    const bg = bgRef.current;
     if (!audio || !canvas) return;
 
     audio.crossOrigin = "anonymous";
@@ -102,87 +106,139 @@ export default function Player() {
       draw();
     }
 
-    // 🎵 Fetch Spotify Token (from backend route)
+    // helper: preload image with crossOrigin and apply
+    async function applyArtwork(url) {
+      if (!fg || !bg) return;
+      if (!url) {
+        console.warn("applyArtwork: empty url, using fallback");
+        fg.style.backgroundImage = `url(${STATION_LOGO})`;
+        bg.style.backgroundImage = `url(${STATION_LOGO})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
+        return;
+      }
+
+      // If url is relative (starts with "/"), it's local; that should be OK.
+      // Try to load via Image() using crossOrigin to prevent canvas taint.
+      try {
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          // ensure absolute-ish: if url starts with "//" keep it, otherwise let browser resolve relative.
+          img.src = url;
+        });
+
+        // loaded fine
+        fg.style.backgroundImage = `url(${url})`;
+        bg.style.backgroundImage = `url(${url})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
+        console.log("✅ Artwork applied:", url);
+      } catch (err) {
+        console.warn("⚠️ Artwork preload failed, falling back to station logo:", url, err);
+        fg.style.backgroundImage = `url(${STATION_LOGO})`;
+        bg.style.backgroundImage = `url(${STATION_LOGO})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
+      }
+    }
+
+    // 🎵 Spotify token fetch (backend)
     async function fetchSpotifyToken() {
       try {
-        console.log("🎫 Fetching Spotify token...");
         const res = await fetch("/api/spotify-token");
         const data = await res.json();
-        console.log("✅ Spotify token received:", !!data.access_token);
-        return data.access_token;
+        return data.access_token || null;
       } catch (err) {
-        console.error("❌ Failed to fetch Spotify token:", err);
+        console.warn("Failed to fetch Spotify token:", err);
         return null;
       }
     }
 
-    // 🎵 Spotify search fallback
+    // Spotify artwork
     async function fetchSpotifyArtwork(songTitle) {
       try {
-        console.log("🎶 Searching Spotify for:", songTitle);
         const token = await fetchSpotifyToken();
         if (!token) return null;
-
         const query = encodeURIComponent(songTitle);
         const res = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-
-        const artUrl = data.tracks?.items?.[0]?.album?.images?.[0]?.url || null;
-        console.log("🖼️ Spotify artwork found:", artUrl);
-        return artUrl;
+        return data.tracks?.items?.[0]?.album?.images?.[0]?.url || null;
       } catch (err) {
-        console.warn("⚠️ Spotify artwork fetch error:", err);
+        console.warn("Spotify artwork error:", err);
         return null;
       }
     }
 
-    // 🎬 YouTube artwork (primary)
+    // YouTube artwork
     async function fetchYouTubeArtwork(songTitle) {
       try {
         const query = encodeURIComponent(songTitle);
         const ytKey = "AIzaSyC0gsNZZ_igtiP2CTjxrN62MP_MB2PIaVU";
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${ytKey}&maxResults=1`;
-
-        const res = await fetch(url);
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${ytKey}&maxResults=1`
+        );
         const data = await res.json();
-
         const video = data.items?.[0];
         const thumb =
           video?.snippet?.thumbnails?.high?.url ||
           video?.snippet?.thumbnails?.medium?.url ||
           video?.snippet?.thumbnails?.default?.url ||
           null;
-
-        console.log("📺 YouTube artwork found:", thumb);
         return thumb;
       } catch (err) {
-        console.warn("⚠️ YouTube artwork fetch error:", err);
+        console.warn("YouTube artwork error:", err);
         return null;
       }
     }
 
-    // 🖼️ Unified artwork selector — YouTube → Spotify → Fallback
+    // getArtwork uses youtube -> spotify -> fallback and caches via cacheArtwork util
     async function getArtwork(songTitle) {
-      // YouTube first (primary)
+      // try to get YouTube artwork first
       let art = await fetchYouTubeArtwork(songTitle);
-      if (art) return await cacheArtwork(songTitle, art);
+      if (art) {
+        console.log("📺 YouTube artwork found:", art);
+        try {
+          const cached = await cacheArtwork(songTitle, art);
+          console.log("🪶 cacheArtwork returned:", cached);
+          return cached || art;
+        } catch (e) {
+          console.warn("cacheArtwork failed (youtube):", e);
+          return art;
+        }
+      }
 
       console.log("⚠️ No YouTube art — trying Spotify...");
       art = await fetchSpotifyArtwork(songTitle);
-      if (art) return await cacheArtwork(songTitle, art);
+      if (art) {
+        console.log("🎵 Spotify artwork found:", art);
+        try {
+          const cached = await cacheArtwork(songTitle, art);
+          console.log("🪶 cacheArtwork returned:", cached);
+          return cached || art;
+        } catch (e) {
+          console.warn("cacheArtwork failed (spotify):", e);
+          return art;
+        }
+      }
 
       console.log("⚠️ No Spotify art — using fallback station logo.");
-      return "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
+      return STATION_LOGO;
     }
 
-    // 🎶 Now Playing Metadata via EventSource
-    const source = new EventSource("https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv");
+    // SSE metadata
+    const source = new EventSource(
+      "https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv"
+    );
+
     source.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
-        let songTitle = data.streamTitle || data.title || "";
+        const songTitle = data.streamTitle || data.title || "";
         if (!songTitle) return;
 
         console.log("📻 Now playing:", songTitle);
@@ -190,26 +246,23 @@ export default function Player() {
         document.title = `🎶 ${songTitle} | Ricalgen FM`;
 
         const art = await getArtwork(songTitle);
-
-        if (art && fgRef.current && bgRef.current) {
-          const fg = fgRef.current;
-          const bg = bgRef.current;
-          fg.style.backgroundImage = `url(${art})`;
-          bg.style.backgroundImage = `url(${art})`;
-          bg.style.opacity = "1";
-          fg.classList.add("show");
-          bg.classList.add("animate");
-          console.log("✅ Artwork applied successfully!");
-        } else {
-          console.log("⚠️ No artwork found for:", songTitle);
-        }
+        // art here should be either a local path (/artworks/...) or a remote URL
+        await applyArtwork(art);
       } catch (err) {
-        console.warn("⚠️ Metadata parse error:", err);
+        console.warn("Metadata parse error:", err);
       }
     };
 
-    source.onerror = (err) => console.warn("❌ Zeno metadata error:", err);
-    return () => source.close();
+    source.onerror = (err) => {
+      console.warn("Zeno metadata error:", err);
+      // keep connection open (browser will attempt reconnect); no throw
+    };
+
+    return () => {
+      try {
+        source.close();
+      } catch {}
+    };
   }, []);
 
   // 🔊 Volume
@@ -242,13 +295,20 @@ export default function Player() {
   return (
     <div className="player-wrap">
       <div className="bg" ref={bgRef}></div>
-      <div className="card" style={{
-                boxShadow:
-                  bassLevel > 0.79 ? "0 18px 45px rgba(113, 24, 226, 1)" : "0 18px 45px rgba(0, 0, 0, 0.6)", 
-              }}>
+      <div
+        className="card"
+        style={{
+          boxShadow:
+            bassLevel > 0.79
+              ? "0 18px 45px rgba(113, 24, 226, 1)"
+              : "0 18px 45px rgba(0, 0, 0, 0.6)",
+        }}
+      >
         <div className="header">
           <div className="station">Ricalgen FM</div>
-          <div className="live"><span className="dot"></span>LIVE</div>
+          <div className="live">
+            <span className="dot"></span>LIVE
+          </div>
         </div>
 
         <div className="main">
@@ -288,10 +348,7 @@ export default function Player() {
                 })`,
               }}
             ></div>
-            <div
-              className="speaker inside2"
-              style={{ borderWidth: `${pianoLevel * 30}px` }}
-            ></div>
+            <div className="speaker inside2" style={{ borderWidth: `${pianoLevel * 30}px` }}></div>
             <div
               className="speaker center"
               style={{
