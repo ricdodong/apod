@@ -478,7 +478,7 @@
   .main {
     flex-direction: row;
     gap: 12px;
-      height: auto;
+      height: 480px;
   }
   .controls-wrap {
     width: 250px;
