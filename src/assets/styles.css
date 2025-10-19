@@ -302,11 +302,11 @@
 /* Tablet / small laptop */
 @media (max-width: 980px) {
     .card {
-        max-width: 1100px;  /* prevent forced desktop scaling */
+        max-width: 100%;  /* prevent forced desktop scaling */
     }
 
     .main {
-        flex-direction: column;   /* stack instead of side-by-side */
+        flex-wrap: nowrap;   /* stack instead of side-by-side */
         align-items: center;
         gap: 16px;
     }
