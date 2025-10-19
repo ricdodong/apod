@@ -314,6 +314,109 @@
     font-size: 14px
 }
 
+
+.speaker-wrapper {
+    width: 250px;
+    height: 250px;
+    flex: 0 0 250px;
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(180deg, #222, #171717);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.speaker {
+    position: relative;
+    aspect-ratio: 1/1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-size: contain;
+}
+
+
+.speaker.center {
+    position: absolute;
+    width: 31%;
+    background-image: url(/speaker-3.webp);
+    filter: blur(0.2vmin); /* important! */
+    top: 50%;           /* move to vertical middle of parent */
+    left: 50%;          /* move to horizontal middle of parent */
+    transform: translate(-50%, -50%); /* offset by half its own size */
+  }
+  
+/* Center animation only runs if 'animating' is added */
+
+.speaker.center.animating {
+    animation-name: center;
+    animation-duration: 50ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+.speaker.border {
+    position: absolute;
+    width: 90%;
+    background-image: url(/speaker-1.webp);
+    filter: blur(0.1vmin);
+}
+
+.speaker.inside {
+    position: relative;
+    width: 66%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-image: url(/speaker-2.webp);
+    background-size: contain;
+    background-repeat: no-repeat;
+    transition: transform 0.05s ease-out;
+}
+
+.speaker.inside2 {
+    position: absolute;
+    width: 26%;
+    top: 50%;
+    border-radius: 50%;
+    border-style: solid;
+    border-width: 40px;
+    border-color: rgba(131, 13, 92, 0.267);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s ease-out;
+}
+
+@keyframes centerMove {
+    from {
+        transform: translate(-50.5%, -49.5%) scale(1.050);
+    }
+
+    to {
+        transform: translate(-49.5%, -50.5%) scale(1.052);
+    }
+}
+
+@keyframes center {
+    0% {
+        transform: translate(-51%, -49%);
+    }
+
+    100% {
+        transform: translate(-49%, -51%);
+    }
+}
+
+@keyframes border {
+    0% {
+        transform: translate(-50.2%, -49.8%);
+    }
+
+    100% {
+        transform: translate(-49.8%, -50.2%);
+    }
+}
+
 /* Tablet / small laptop */
 @media (max-width: 980px) {
     .card {
@@ -522,104 +625,3 @@
 }
 
 
-.speaker-wrapper {
-    width: 250px;
-    height: 250px;
-    flex: 0 0 250px;
-    border-radius: 14px;
-    overflow: hidden;
-    position: relative;
-    background: linear-gradient(180deg, #222, #171717);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-}
-
-.speaker {
-    position: relative;
-    aspect-ratio: 1/1;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-size: contain;
-}
-
-
-.speaker.center {
-    position: absolute;
-    width: 31%;
-    background-image: url(/speaker-3.webp);
-    filter: blur(0.2vmin); /* important! */
-    top: 50%;           /* move to vertical middle of parent */
-    left: 50%;          /* move to horizontal middle of parent */
-    transform: translate(-50%, -50%); /* offset by half its own size */
-  }
-  
-/* Center animation only runs if 'animating' is added */
-
-.speaker.center.animating {
-    animation-name: center;
-    animation-duration: 50ms;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-}
-
-.speaker.border {
-    position: absolute;
-    width: 90%;
-    background-image: url(/speaker-1.webp);
-    filter: blur(0.1vmin);
-}
-
-.speaker.inside {
-    position: relative;
-    width: 66%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-image: url(/speaker-2.webp);
-    background-size: contain;
-    background-repeat: no-repeat;
-    transition: transform 0.05s ease-out;
-}
-
-.speaker.inside2 {
-    position: absolute;
-    width: 26%;
-    top: 50%;
-    border-radius: 50%;
-    border-style: solid;
-    border-width: 40px;
-    border-color: rgba(131, 13, 92, 0.267);
-    left: 50%;
-    transform: translate(-50%, -50%);
-    transition: transform 0.05s ease-out;
-}
-
-@keyframes centerMove {
-    from {
-        transform: translate(-50.5%, -49.5%) scale(1.050);
-    }
-
-    to {
-        transform: translate(-49.5%, -50.5%) scale(1.052);
-    }
-}
-
-@keyframes center {
-    0% {
-        transform: translate(-51%, -49%);
-    }
-
-    100% {
-        transform: translate(-49%, -51%);
-    }
-}
-
-@keyframes border {
-    0% {
-        transform: translate(-50.2%, -49.8%);
-    }
-
-    100% {
-        transform: translate(-49.8%, -50.2%);
-    }
-}
