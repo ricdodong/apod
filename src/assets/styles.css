@@ -325,43 +325,79 @@
     }
 }
 
-@media (max-width:640px) {
+
+@media (max-width: 640px) {
     .card {
-        padding: 14px;
-        border-radius: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        max-width: 100%;
+        margin: 0 auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.45);
     }
+
     .player-wrap {
-    height: 100%;
+        height: auto;
+        min-height: 100vh;
     }
+
     .main {
         flex-direction: column;
         align-items: center;
-        gap: 12px;
+        gap: 8px; /* tighter */
     }
 
     .controls-wrap {
-        width: 250px;
+        width: 220px;
+        max-width: 100%;
+        gap: 6px; /* less wasted vertical space */
     }
 
     .title {
-        width: 250px;
+        max-width: 220px;
+        width: 100%;
+        font-size: 16px;       /* slightly smaller */
+        text-align: center;
+        margin-bottom: 4px;
     }
 
     .artwork {
-        width: 250px;
-        height: 250px;
-    }
-
-    .vol {
-        width: 160px;
+        width: 220px;
+        height: 220px;
+        border-radius: 12px;
+        box-shadow: 0 14px 28px rgba(0,0,0,0.45);
     }
 
     .speaker-wrapper {
-        width: 250px;
-        flex: 0 0 250px;
+        width: 220px;
+        height: 220px;
+        flex: 0 0 220px;
+    }
+
+    .play {
+        width: 60px;
+        height: 60px;
+        font-size: 18px;
+    }
+
+    .vol {
+        width: 140px;
+    }
+
+    .status {
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .footer {
+        gap: 6px;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    .socials a {
+        font-size: 13px;
     }
 }
-
 
 .speaker-wrapper {
     width: 250px;
