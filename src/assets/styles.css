@@ -485,7 +485,12 @@
     flex-wrap: nowrap;
   }
 
-  .artwork,
+  .artwork {
+    width: 180px;
+    height: 180px;
+    flex: 0 0 180px;
+  }
+    
   .speaker-wrapper {
     width: 180px;
     height: 180px;
@@ -493,12 +498,12 @@
   }
 
   .meta {
-    max-width: 300px;
+    max-width: 180px;
     height: 180px;
   }
 
   .controls-wrap {
-    width: 200px;
+    width: 180px;
   }
 
   .vol {
