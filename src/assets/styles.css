@@ -476,7 +476,7 @@
 /* FORCE mobile layout when screen is short (landscape phones) */
 @media (max-height: 500px) {
   .main {
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
   }
   .controls-wrap {
