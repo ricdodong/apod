@@ -341,6 +341,58 @@
     }
 }
 
+/* small phones in LANDSCAPE - tighten layout, no wrap */
+@media (max-width: 640px) and (orientation: landscape) {
+    .card {
+        padding: 10px;
+        max-width: 100%;
+    }
+
+    .main {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+
+    .artwork,
+    .speaker-wrapper {
+        width: 180px;
+        height: 180px;
+        flex: 0 0 180px;
+    }
+
+    .meta {
+        max-width: 260px;
+        height: 180px;
+        padding: 6px 10px;
+    }
+
+    .title {
+        font-size: 15px;
+        max-width: 240px;
+    }
+
+    .controls-wrap {
+        width: 260px;
+        gap: 6px;
+        flex-direction: column-reverse;
+    }
+
+    .play {
+        width: 52px;
+        height: 52px;
+        font-size: 18px;
+    }
+
+    .vol {
+        width: 140px;
+    }
+
+    .status {
+        font-size: 12px;
+    }
+}
+
 @media (max-width:640px) and (orientation: portrait) {
     .card {
         padding: 10px 12px;
