@@ -302,7 +302,7 @@
 /* Tablet / small laptop */
 @media (max-width: 980px) {
     .card {
-        max-width: 100%;  /* prevent forced desktop scaling */
+        max-width: 1050px;  /* prevent forced desktop scaling */
     }
 
     .artwork {
