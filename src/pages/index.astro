@@ -18,5 +18,18 @@ import Player from "../components/Player.jsx";
       client:idle → load when browser is idle
       client:visible → load when component is visible
     -->
+
+<div id="debug-size"></div>
+
+<script>
+  function updateDebugSize() {
+    const el = document.getElementById('debug-size');
+    if (!el) return;
+    el.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+  }
+  window.addEventListener('resize', updateDebugSize);
+  window.addEventListener('orientationchange', updateDebugSize);
+  window.addEventListener('load', updateDebugSize);
+</script>
   </body>
 </html>
