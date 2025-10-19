@@ -344,7 +344,7 @@
 @media (max-width: 640px) and (orientation: landscape) {
     .card {
         padding: 10px;
-        max-width: 100%;
+        max-width: 90%;
     }
 
     .main {
@@ -355,24 +355,24 @@
 
     .artwork,
     .speaker-wrapper {
-        width: 180px;
-        height: 180px;
-        flex: 0 0 180px;
+        width: 150px;
+        height: 150px;
+        flex: 0 0 150px;
     }
 
     .meta {
-        max-width: 260px;
+        max-width: 200px;
         height: 180px;
         padding: 6px 10px;
     }
 
     .title {
         font-size: 15px;
-        max-width: 240px;
+        max-width: 200px;
     }
 
     .controls-wrap {
-        width: 260px;
+        width: 200px;
         gap: 6px;
         flex-direction: column-reverse;
     }
