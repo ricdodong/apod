@@ -474,32 +474,47 @@
 
 
 /* FORCE mobile layout when screen is short (landscape phones) */
-@media (max-height: 500px) {
+/* LANDSCAPE: small-height screens (phones sideways) */
+/* 3 columns layout */
+@media (max-height: 500px) and (orientation: landscape) {
   .main {
     flex-direction: row;
-    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
-    .card {
-        height:400px;
-    }
-  .controls-wrap {
-    width: 250px;
-  }
-  .title {
-    width: 250px;
-  }
+
   .artwork,
   .speaker-wrapper {
-    width: 200px;
-    height: 200px;
-    flex: 0 0 200px;
+    width: 180px;
+    height: 180px;
+    flex: 0 0 180px;
   }
+
+  .meta {
+    max-width: 300px;
+    height: 180px;
+  }
+
+  .controls-wrap {
+    width: 200px;
+  }
+
   .vol {
-    width: 160px;
+    width: 140px;
+  }
+
+  .title {
+    width: 220px;
+  }
+
+  /* slightly tighten everything to fit 304px height */
+  .card {
+    padding: 10px;
+    margin: 8px auto;
   }
 }
-
-
 
 
 .speaker-wrapper {
