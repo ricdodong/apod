@@ -1,210 +1,222 @@
+// src/components/Player.jsx
 import React, { useEffect, useRef, useState } from "react";
-import "./Player.css";
+import "../assets/styles.css";
+import { cacheArtwork } from "../utils/cacheArtwork";
 
-const STREAMS = {
-  railway: "https://ricalgenfm.up.railway.app/live",
-  zeno: "https://stream.zeno.fm/wngolqwah00tv",
+const socialsData = {
+  facebook: "https://facebook.com/ricalgenfm",
+  twitter: "https://twitter.com/ricalgenfm",
+  instagram: "https://instagram.com/ricalgenfm",
+  youtube: "https://youtube.com/ricalgenfm",
 };
 
-const METADATA = {
-  railway: "https://ricalgenfm.up.railway.app/status-json.xsl",
-  zeno: "https://stream.zeno.fm/wngolqwah00tv",
+const socialIcons = {
+  facebook: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M22 12a10 10 0 1 0-11 9.95v-7.05H8v-2.9h3v-2.2c0-3 1.8-4.6 4.5-4.6 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 1-2 2v2h3.4l-.5 2.9h-2.9V22A10 10 0 0 0 22 12z" />
+    </svg>
+  ),
+  twitter: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.28 4.28 0 0 0 1.88-2.36 8.59 8.59 0 0 1-2.7 1.03 4.28 4.28 0 0 0-7.3 3.9A12.15 12.15 0 0 1 3.1 4.9a4.28 4.28 0 0 0 1.32 5.7 4.28 4.28 0 0 1-1.94-.53v.05a4.28 4.28 0 0 0 3.43 4.2 4.28 4.28 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.97 8.57 8.57 0 0 1-5.3 1.83A8.7 8.7 0 0 1 2 19.54 12.08 12.08 0 0 0 8.29 21c7.55 0 11.68-6.26 11.68-11.68 0-.18-.01-.35-.02-.53A8.36 8.36 0 0 0 22.46 6z" />
+    </svg>
+  ),
+  instagram: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10zm-5 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm4.5-.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M21.8 8s-.2-1.4-.8-2a3.3 3.3 0 0 0-2.3-.8C16.2 5 12 5 12 5s-4.2 0-6.7.2a3.3 3.3 0 0 0-2.3.8C2.4 6.6 2.2 8 2.2 8S2 9.6 2 11.2v1.6c0 1.6.2 3.2.2 3.2s.2 1.4.8 2a3.3 3.3 0 0 0 2.3.8c2.5.2 6.7.2 6.7.2s4.2 0 6.7-.2a3.3 3.3 0 0 0 2.3-.8c.6-.6.8-2 .8-2s.2-1.6.2-3.2v-1.6c0-1.6-.2-3.2-.2-3.2zM10 15V9l5 3-5 3z" />
+    </svg>
+  ),
 };
 
 export default function Player() {
+  const [title, setTitle] = useState("Click Play to Start");
+  const [status, setStatus] = useState("Connecting…");
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [bassLevel, setBassLevel] = useState(0);
+  const [pianoLevel, setPianoLevel] = useState(0);
+  const [server, setServer] = useState("railway");
+
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
+  const bgRef = useRef(null);
+  const fgRef = useRef(null);
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
 
-  const [playing, setPlaying] = useState(false);
-  const [status, setStatus] = useState("Idle");
-  const [nowPlaying, setNowPlaying] = useState("RicalgenFM");
-  const [albumArt, setAlbumArt] = useState("/default-art.jpg");
-  const [currentServer, setCurrentServer] = useState("railway");
-  const [volume, setVolume] = useState(1);
+  const STREAMS = {
+    railway: "https://ricalgenfm.up.railway.app/live",
+    zeno: "https://stream.zeno.fm/wngolqwah00tv",
+  };
 
-  // 🔊 Initialize Audio + Visualizer
+  const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
+
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    const canvas = canvasRef.current;
+    if (!audio || !canvas) return;
     audio.crossOrigin = "anonymous";
 
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaElementSource(audio);
-    const analyser = ctx.createAnalyser();
+    // 🎧 Visualizer setup
+    if (!audioCtxRef.current) {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = audioCtx;
 
-    src.connect(analyser);
-    analyser.connect(ctx.destination);
-    analyser.fftSize = 256;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyserRef.current = analyser;
 
-    audioCtxRef.current = ctx;
-    analyserRef.current = analyser;
+      const src = audioCtx.createMediaElementSource(audio);
+      src.connect(analyser);
+      analyser.connect(audioCtx.destination);
 
-    const canvas = canvasRef.current;
-    const c = canvas.getContext("2d");
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const smoothArray = new Array(analyser.frequencyBinCount).fill(0);
+      const ctx = canvas.getContext("2d");
 
-    const render = () => {
-      requestAnimationFrame(render);
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      analyser.getByteFrequencyData(dataArray);
+      const draw = () => {
+        requestAnimationFrame(draw);
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        analyser.getByteFrequencyData(freqData);
 
-      c.clearRect(0, 0, canvas.width, canvas.height);
-      const barWidth = (canvas.width / bufferLength) * 2.5;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = dataArray[i];
-        const gradient = c.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, "#00ffff");
-        gradient.addColorStop(1, "#ff00ff");
-
-        c.fillStyle = gradient;
-        c.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
-        x += barWidth + 1;
-      }
-    };
-
-    render();
-
-    // Auto fallback if Railway fails
-    audio.addEventListener("error", () => {
-      if (currentServer === "railway") {
-        console.warn("❌ Railway stream failed, switching to ZenoFM...");
-        setCurrentServer("zeno");
-        audio.src = STREAMS.zeno;
-        audio.play().then(() => {
-          setStatus("📻 Auto-switched to ZenoFM");
-          setPlaying(true);
-        });
-      }
-    });
-
-    return () => {
-      ctx.close();
-    };
-  }, [currentServer]);
-
-  // 🎶 Fetch Now Playing Metadata
-  useEffect(() => {
-    const fetchNowPlaying = async () => {
-      try {
-        if (currentServer === "railway") {
-          const res = await fetch(METADATA.railway);
-          const json = await res.json();
-          const title = json?.icestats?.source?.title || "RicalgenFM";
-          setNowPlaying(title);
-        } else {
-          const res = await fetch(METADATA.zeno);
-          const json = await res.json();
-          const title =
-            json?.icestats?.source?.title ||
-            "ZenoFM Stream";
-          setNowPlaying(title);
+        let x = 0;
+        const barWidth = canvas.width / freqData.length;
+        for (let i = 0; i < freqData.length; i++) {
+          smoothArray[i] += (freqData[i] - smoothArray[i]) * 0.35;
+          const barHeight = smoothArray[i] / 1.8;
+          const hue = ((i * 360) / freqData.length + Date.now() * 0.07) % 360;
+          const grad = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+          grad.addColorStop(0, `hsla(${hue},90%,60%,0.9)`);
+          grad.addColorStop(1, `hsla(${hue},90%,50%,0.3)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+          x += barWidth + 1;
         }
-      } catch (err) {
-        console.error("Metadata fetch failed:", err);
+
+        const bass = freqData.slice(1, 10);
+        const mids = freqData.slice(15, 80);
+        setBassLevel(bass.reduce((a, b) => a + b, 0) / bass.length / 255);
+        setPianoLevel(mids.reduce((a, b) => a + b, 0) / mids.length / 255);
+      };
+      draw();
+    }
+
+    // 🔁 Fetch now playing (from Railway first, fallback to Zeno)
+    async function fetchNowPlaying() {
+      try {
+        const res = await fetch("https://ricalgenfm.up.railway.app/status-json.xsl");
+        const data = await res.json();
+        const song = data?.icestats?.source?.title || "RicalgenFM Live Stream";
+        setTitle(song);
+        document.title = `🎶 ${song} | Ricalgen FM`;
+      } catch {
+        console.log("Railway metadata failed, switching to Zeno...");
+        setServer("zeno");
       }
-    };
+    }
 
     fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 10000);
-    return () => clearInterval(interval);
-  }, [currentServer]);
+  }, []);
 
-  // 🎧 Play / Pause Logic
+  // 🔊 Volume
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
   const handlePlay = async () => {
     const audio = audioRef.current;
     const audioCtx = audioCtxRef.current;
     if (!audio || !audioCtx) return;
-
     if (audioCtx.state === "suspended") await audioCtx.resume();
-    if (!audio.src) audio.src = STREAMS[currentServer];
+
+    const url = STREAMS[server];
+    audio.src = url;
 
     try {
-      if (audio.paused) {
-        await audio.play();
-        setPlaying(true);
-        setStatus(`🎧 Playing via ${currentServer === "railway" ? "Railway" : "ZenoFM"}`);
-      } else {
-        audio.pause();
-        setPlaying(false);
-        setStatus("⏸️ Paused");
-      }
+      await audio.play();
+      setStatus(`Playing via ${server}`);
+      setPlaying(true);
     } catch (err) {
-      console.warn("Play error:", err);
-      if (currentServer === "railway") {
-        console.warn("Auto switching to ZenoFM...");
-        setCurrentServer("zeno");
-        audio.src = STREAMS.zeno;
-        try {
-          await audio.play();
-          setPlaying(true);
-          setStatus("📻 Auto-switched to ZenoFM");
-        } catch {
-          setStatus("❌ Both streams unavailable");
-        }
+      console.warn("Playback error:", err);
+      if (server === "railway") {
+        console.log("Auto fallback to Zeno...");
+        setServer("zeno");
+        setTimeout(() => handlePlay(), 1000);
+      } else {
+        setStatus("Playback failed");
       }
     }
   };
 
-  // 🔈 Volume Control
-  const handleVolume = (e) => {
-    const newVol = e.target.value;
-    setVolume(newVol);
-    audioRef.current.volume = newVol;
-  };
-
   return (
-    <div className="player-container">
-      <canvas ref={canvasRef} width="400" height="100"></canvas>
+    <div className="player-wrap">
+      <div className="bg" ref={bgRef}></div>
+      <div className="card"
+        style={{
+          boxShadow: bassLevel > 0.79
+            ? "0 18px 45px rgba(113, 24, 226, 1)"
+            : "0 18px 45px rgba(0, 0, 0, 0.6)",
+        }}
+      >
+        <div className="header">
+          <div className="station">Ricalgen FM</div>
+          <div className="live"><span className="dot"></span>LIVE</div>
+        </div>
 
-      <div className="info">
-        <img
-          src={albumArt}
-          alt="Album Art"
-          className="album-art"
-          onError={(e) => (e.target.src = "/default-art.jpg")}
-        />
-        <div className="text-info">
-          <h3>{nowPlaying}</h3>
-          <p>{status}</p>
+        <div className="main">
+          <div className="artwork">
+            <div className="fg" ref={fgRef}></div>
+          </div>
+
+          <div className="meta">
+            <div className="title">{title}</div>
+            <div className="controls-wrap">
+              <canvas className="visualizer" ref={canvasRef}></canvas>
+              <button className="play" onClick={handlePlay}>
+                {playing ? "⏸" : "▶"}
+              </button>
+              <span className="vol-icon">
+                {volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+              />
+              <select
+                className="server-select"
+                value={server}
+                onChange={(e) => setServer(e.target.value)}
+              >
+                <option value="railway">Railway (Default)</option>
+                <option value="zeno">Zeno FM</option>
+              </select>
+              <div className="status">{status}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="footer">
+          <div className="socials">
+            {Object.entries(socialsData).map(([key, url]) => (
+              <a key={key} href={url} target="_blank" rel="noopener noreferrer">
+                {socialIcons[key]}
+              </a>
+            ))}
+          </div>
+          <div className="meta-version">Ricalgen FM Player</div>
         </div>
       </div>
-
-      <div className="controls-wrap">
-        <button onClick={handlePlay} className="play-btn">
-          {playing ? "⏸️ Pause" : "▶️ Play"}
-        </button>
-
-        <select
-          value={currentServer}
-          onChange={(e) => {
-            const newServer = e.target.value;
-            setCurrentServer(newServer);
-            const audio = audioRef.current;
-            audio.src = STREAMS[newServer];
-            if (playing) audio.play();
-            setStatus(`🎧 Playing via ${newServer === "railway" ? "Railway" : "ZenoFM"}`);
-          }}
-          className="bg-gray-800 text-white px-2 py-1 rounded ml-2"
-        >
-          <option value="railway">Railway</option>
-          <option value="zeno">ZenoFM</option>
-        </select>
-
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={handleVolume}
-          className="volume-slider ml-2"
-        />
-      </div>
-
       <audio ref={audioRef}></audio>
     </div>
   );
