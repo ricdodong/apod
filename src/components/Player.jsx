@@ -10,17 +10,37 @@ const socialsData = {
   youtube: "https://youtube.com/ricalgenfm",
 };
 
-const socialIcons = { /* --- your existing SVGs unchanged --- */ };
+const socialIcons = {
+  facebook: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M22 12a10 10 0 1 0-11 9.95v-7.05H8v-2.9h3v-2.2c0-3 1.8-4.6 4.5-4.6 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 1-2 2v2h3.4l-.5 2.9h-2.9V22A10 10 0 0 0 22 12z" />
+    </svg>
+  ),
+  twitter: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.28 4.28 0 0 0 1.88-2.36 8.59 8.59 0 0 1-2.7 1.03 4.28 4.28 0 0 0-7.3 3.9A12.15 12.15 0 0 1 3.1 4.9a4.28 4.28 0 0 0 1.32 5.7 4.28 4.28 0 0 1-1.94-.53v.05a4.28 4.28 0 0 0 3.43 4.2 4.28 4.28 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.97 8.57 8.57 0 0 1-5.3 1.83A8.7 8.7 0 0 1 2 19.54 12.08 12.08 0 0 0 8.29 21c7.55 0 11.68-6.26 11.68-11.68 0-.18-.01-.35-.02-.53A8.36 8.36 0 0 0 22.46 6z" />
+    </svg>
+  ),
+  instagram: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10zm-5 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm4.5-.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+      <path d="M21.8 8s-.2-1.4-.8-2a3.3 3.3 0 0 0-2.3-.8C16.2 5 12 5 12 5s-4.2 0-6.7.2a3.3 3.3 0 0 0-2.3.8C2.4 6.6 2.2 8 2.2 8S2 9.6 2 11.2v1.6c0 1.6.2 3.2.2 3.2s.2 1.4.8 2a3.3 3.3 0 0 0 2.3.8c2.5.2 6.7.2 6.7.2s4.2 0 6.7-.2a3.3 3.3 0 0 0 2.3-.8c.6-.6.8-2 .8-2s.2-1.6.2-3.2v-1.6c0-1.6-.2-3.2-.2-3.2zM10 15V9l5 3-5 3z" />
+    </svg>
+  ),
+};
 
 export default function Player() {
   const [title, setTitle] = useState("Click Play to Start");
   const [status, setStatus] = useState("Connecting…");
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [server, setServer] = useState("railway"); // 👈 default
-  const [fallbackActive, setFallbackActive] = useState(false);
   const [bassLevel, setBassLevel] = useState(0);
   const [pianoLevel, setPianoLevel] = useState(0);
+  const [currentServer, setCurrentServer] = useState("railway"); // default server
 
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
@@ -29,15 +49,13 @@ export default function Player() {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
 
-  const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
-
-  // 🎧 Define your stream sources here:
   const STREAMS = {
     railway: "https://ricalgenfm-production.up.railway.app/live",
     zeno: "https://stream.zeno.fm/wngolqwah00tv",
   };
 
-  // VISUALIZER + ARTWORK + METADATA system (unchanged)
+  const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
+
   useEffect(() => {
     const audio = audioRef.current;
     const canvas = canvasRef.current;
@@ -50,11 +68,9 @@ export default function Player() {
     if (!audioCtxRef.current) {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = audioCtx;
-
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
       analyserRef.current = analyser;
-
       const src = audioCtx.createMediaElementSource(audio);
       src.connect(analyser);
       analyser.connect(audioCtx.destination);
@@ -92,112 +108,56 @@ export default function Player() {
       draw();
     }
 
-    // Metadata from Zeno (works even if Railway is primary)
-    const source = new EventSource("https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv");
+    const source = new EventSource(
+      "https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv"
+    );
 
     source.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
         const songTitle = data.streamTitle || data.title || "";
         if (!songTitle) return;
-
         setTitle(songTitle);
         document.title = `🎶 ${songTitle} | Ricalgen FM`;
-
-        // fetch and apply artwork
-        const art = await getArtwork(songTitle);
-        await applyArtwork(art);
-      } catch (err) {
-        console.warn("Metadata parse error:", err);
-      }
-    };
-
-    return () => {
-      try {
-        source.close();
       } catch {}
     };
+
+    return () => source.close();
   }, []);
 
-  async function applyArtwork(url) {
-    const fg = fgRef.current;
-    const bg = bgRef.current;
-    if (!fg || !bg) return;
-
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = url;
-      await img.decode();
-      fg.style.backgroundImage = `url(${url})`;
-      bg.style.backgroundImage = `url(${url})`;
-    } catch {
-      fg.style.backgroundImage = `url(${STATION_LOGO})`;
-      bg.style.backgroundImage = `url(${STATION_LOGO})`;
-    }
-  }
-
-  async function getArtwork(songTitle) {
-    // simplified here — your full Spotify + YouTube fallback logic can stay the same
-    return STATION_LOGO;
-  }
-
-  // 🔊 Volume
+  // Volume effect
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  // 🎛 Handle play/pause + automatic fallback
-  const handlePlay = async () => {
-    const audio = audioRef.current;
-    const audioCtx = audioCtxRef.current;
-    if (!audio || !audioCtx) return;
-    if (audioCtx.state === "suspended") await audioCtx.resume();
-
-    if (!audio.src) {
-      audio.src = STREAMS[server];
-      console.log(`🎧 Initial source: ${server}`);
-    }
-
+  // 🔄 Auto fallback
+  const playWithFallback = async (audio) => {
     try {
-      if (audio.paused) {
-        await audio.play();
-        setStatus(`Playing live via ${server}${fallbackActive ? " (fallback)" : ""}`);
-        setPlaying(true);
-      } else {
-        audio.pause();
-        setStatus("Paused");
-        setPlaying(false);
-      }
-    } catch (err) {
-      console.warn("Audio play failed:", err);
-      // 🚨 automatic fallback to Zeno
-      if (server === "railway" && !fallbackActive) {
-        console.log("⚠️ Railway failed, switching to Zeno fallback");
-        setServer("zeno");
-        setFallbackActive(true);
+      audio.src = STREAMS[currentServer];
+      await audio.play();
+      setStatus(`Playing from ${currentServer}`);
+      setPlaying(true);
+    } catch {
+      if (currentServer === "railway") {
+        console.warn("❌ Railway down, switching to Zeno");
+        setCurrentServer("zeno");
         audio.src = STREAMS.zeno;
-        try {
-          await audio.play();
-          setStatus("Playing live via Zeno (fallback)");
-          setPlaying(true);
-        } catch (e2) {
-          setStatus("Unable to connect to both streams.");
-        }
+        await audio.play();
+        setStatus("Playing fallback (Zeno)");
+        setPlaying(true);
       }
     }
   };
 
-  // Manual server selection
-  const handleServerChange = (e) => {
-    const newServer = e.target.value;
+  const handlePlay = async () => {
     const audio = audioRef.current;
-    setServer(newServer);
-    setFallbackActive(false);
-    setStatus(`Switched to ${newServer}`);
-    if (audio && playing) {
-      audio.src = STREAMS[newServer];
-      audio.play().catch(() => setStatus(`Error playing ${newServer}`));
+    if (!audio) return;
+    if (audio.paused) {
+      await playWithFallback(audio);
+    } else {
+      audio.pause();
+      setStatus("Paused");
+      setPlaying(false);
     }
   };
 
@@ -215,7 +175,19 @@ export default function Player() {
       >
         <div className="header">
           <div className="station">Ricalgen FM</div>
-          <div className="live"><span className="dot"></span>LIVE</div>
+          <div className="live">
+            <span className="dot"></span>LIVE
+          </div>
+          <div className="server-select">
+            <select
+              value={currentServer}
+              onChange={(e) => setCurrentServer(e.target.value)}
+              title="Select stream server"
+            >
+              <option value="railway">Railway (default)</option>
+              <option value="zeno">Zeno</option>
+            </select>
+          </div>
         </div>
 
         <div className="main">
@@ -232,16 +204,16 @@ export default function Player() {
                 {playing ? "⏸" : "▶"}
               </button>
               <span className="vol-icon">{volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}</span>
-              <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))}/>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+              />
               <div className="status">{status}</div>
             </div>
-          </div>
-
-          <div className="speaker-wrapper">
-            <div className="speaker inside" style={{ filter: bassLevel > 0.78 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none" }}></div>
-            <div className="speaker inside2" style={{ borderWidth: `${pianoLevel * 30}px` }}></div>
-            <div className="speaker center" style={{ transform: `translate(-50%, -50%) scale(${bassLevel > 0.78 || pianoLevel > 0.6 ? 0.89 : 0.9})` }}></div>
-            <div className="speaker border"></div>
           </div>
         </div>
 
@@ -253,16 +225,6 @@ export default function Player() {
               </a>
             ))}
           </div>
-
-          {/* 👇 Manual server selection UI */}
-          <div className="server-select">
-            <label>Server: </label>
-            <select value={server} onChange={handleServerChange}>
-              <option value="railway">Railway (Default)</option>
-              <option value="zeno">Zeno (Backup)</option>
-            </select>
-          </div>
-
           <div className="meta-version">Ricalgen FM player</div>
         </div>
       </div>
