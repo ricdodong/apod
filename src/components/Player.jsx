@@ -1,7 +1,7 @@
 // src/components/Player.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "../assets/styles.css";
-import { cacheArtwork } from "../utils/cacheArtwork";
+import { cacheArtwork } from "../utils/cacheArtwork"; // ensure this exists and returns local path or original URL
 
 const socialsData = {
   facebook: "https://facebook.com/ricalgenfm",
@@ -40,7 +40,6 @@ export default function Player() {
   const [volume, setVolume] = useState(1);
   const [bassLevel, setBassLevel] = useState(0);
   const [pianoLevel, setPianoLevel] = useState(0);
-  const [server, setServer] = useState("railway");
 
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
@@ -49,20 +48,19 @@ export default function Player() {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
 
-  const STREAMS = {
-    railway: "https://ricalgenfm.up.railway.app/live",
-    zeno: "https://stream.zeno.fm/wngolqwah00tv",
-  };
-
+  // fallback station logo
   const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
 
   useEffect(() => {
     const audio = audioRef.current;
     const canvas = canvasRef.current;
+    const fg = fgRef.current;
+    const bg = bgRef.current;
     if (!audio || !canvas) return;
+
     audio.crossOrigin = "anonymous";
 
-    // 🎧 Visualizer setup
+    // 🎧 VISUALIZER
     if (!audioCtxRef.current) {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = audioCtx;
@@ -108,21 +106,163 @@ export default function Player() {
       draw();
     }
 
-    // 🔁 Fetch now playing (from Railway first, fallback to Zeno)
-    async function fetchNowPlaying() {
+    // helper: preload image with crossOrigin and apply
+    async function applyArtwork(url) {
+      if (!fg || !bg) return;
+      if (!url) {
+        console.warn("applyArtwork: empty url, using fallback");
+        fg.style.backgroundImage = `url(${STATION_LOGO})`;
+        bg.style.backgroundImage = `url(${STATION_LOGO})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
+        return;
+      }
+
+      // If url is relative (starts with "/"), it's local; that should be OK.
+      // Try to load via Image() using crossOrigin to prevent canvas taint.
       try {
-        const res = await fetch("https://ricalgenfm.up.railway.app/status-json.xsl");
-        const data = await res.json();
-        const song = data?.icestats?.source?.title || "RicalgenFM Live Stream";
-        setTitle(song);
-        document.title = `🎶 ${song} | Ricalgen FM`;
-      } catch {
-        console.log("Railway metadata failed, switching to Zeno...");
-        setServer("zeno");
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          // ensure absolute-ish: if url starts with "//" keep it, otherwise let browser resolve relative.
+          img.src = url;
+        });
+
+        // loaded fine
+        fg.style.backgroundImage = `url(${url})`;
+        bg.style.backgroundImage = `url(${url})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
+        console.log("✅ Artwork applied:", url);
+      } catch (err) {
+        console.warn("⚠️ Artwork preload failed, falling back to station logo:", url, err);
+        fg.style.backgroundImage = `url(${STATION_LOGO})`;
+        bg.style.backgroundImage = `url(${STATION_LOGO})`;
+        fg.classList.add("show");
+        bg.classList.add("animate");
       }
     }
 
-    fetchNowPlaying();
+    // 🎵 Spotify token fetch (backend)
+    async function fetchSpotifyToken() {
+      try {
+        const res = await fetch("/api/spotify-token");
+        const data = await res.json();
+        return data.access_token || null;
+      } catch (err) {
+        console.warn("Failed to fetch Spotify token:", err);
+        return null;
+      }
+    }
+
+    // Spotify artwork
+    async function fetchSpotifyArtwork(songTitle) {
+      try {
+        const token = await fetchSpotifyToken();
+        if (!token) return null;
+        const query = encodeURIComponent(songTitle);
+        const res = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        return data.tracks?.items?.[0]?.album?.images?.[0]?.url || null;
+      } catch (err) {
+        console.warn("Spotify artwork error:", err);
+        return null;
+      }
+    }
+
+    // YouTube artwork
+    async function fetchYouTubeArtwork(songTitle) {
+      try {
+        const query = encodeURIComponent(songTitle);
+        const ytKey = "AIzaSyC0gsNZZ_igtiP2CTjxrN62MP_MB2PIaVU";
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${ytKey}&maxResults=1`
+        );
+        const data = await res.json();
+        const video = data.items?.[0];
+        const thumb =
+          video?.snippet?.thumbnails?.high?.url ||
+          video?.snippet?.thumbnails?.medium?.url ||
+          video?.snippet?.thumbnails?.default?.url ||
+          null;
+        return thumb;
+      } catch (err) {
+        console.warn("YouTube artwork error:", err);
+        return null;
+      }
+    }
+
+    // getArtwork uses youtube -> spotify -> fallback and caches via cacheArtwork util
+    async function getArtwork(songTitle) {
+      // try to get YouTube artwork first
+      let art = await fetchYouTubeArtwork(songTitle);
+      if (art) {
+        console.log("📺 YouTube artwork found:", art);
+        try {
+          const cached = await cacheArtwork(songTitle, art);
+          console.log("🪶 cacheArtwork returned:", cached);
+          return cached || art;
+        } catch (e) {
+          console.warn("cacheArtwork failed (youtube):", e);
+          return art;
+        }
+      }
+
+      console.log("⚠️ No YouTube art — trying Spotify...");
+      art = await fetchSpotifyArtwork(songTitle);
+      if (art) {
+        console.log("🎵 Spotify artwork found:", art);
+        try {
+          const cached = await cacheArtwork(songTitle, art);
+          console.log("🪶 cacheArtwork returned:", cached);
+          return cached || art;
+        } catch (e) {
+          console.warn("cacheArtwork failed (spotify):", e);
+          return art;
+        }
+      }
+
+      console.log("⚠️ No Spotify art — using fallback station logo.");
+      return STATION_LOGO;
+    }
+
+    // SSE metadata
+    const source = new EventSource(
+      "https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv"
+    );
+
+    source.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const songTitle = data.streamTitle || data.title || "";
+        if (!songTitle) return;
+
+        console.log("📻 Now playing:", songTitle);
+        setTitle(songTitle);
+        document.title = `🎶 ${songTitle} | Ricalgen FM`;
+
+        const art = await getArtwork(songTitle);
+        // art here should be either a local path (/artworks/...) or a remote URL
+        await applyArtwork(art);
+      } catch (err) {
+        console.warn("Metadata parse error:", err);
+      }
+    };
+
+    source.onerror = (err) => {
+      console.warn("Zeno metadata error:", err);
+      // keep connection open (browser will attempt reconnect); no throw
+    };
+
+    return () => {
+      try {
+        source.close();
+      } catch {}
+    };
   }, []);
 
   // 🔊 Volume
@@ -136,43 +276,45 @@ export default function Player() {
     if (!audio || !audioCtx) return;
     if (audioCtx.state === "suspended") await audioCtx.resume();
 
-    const url = STREAMS[server];
-    audio.src = url;
-
+    if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
     try {
-      await audio.play();
-      setStatus(`Playing via ${server}`);
-      setPlaying(true);
-    } catch (err) {
-      console.warn("Playback error:", err);
-      if (server === "railway") {
-        console.log("Auto fallback to Zeno...");
-        setServer("zeno");
-        setTimeout(() => handlePlay(), 1000);
+      if (audio.paused) {
+        await audio.play();
+        setStatus("Playing live");
+        setPlaying(true);
       } else {
-        setStatus("Playback failed");
+        audio.pause();
+        setStatus("Paused");
+        setPlaying(false);
       }
+    } catch (err) {
+      console.warn("Audio play failed:", err);
     }
   };
 
   return (
     <div className="player-wrap">
       <div className="bg" ref={bgRef}></div>
-      <div className="card"
+      <div
+        className="card"
         style={{
-          boxShadow: bassLevel > 0.79
-            ? "0 18px 45px rgba(113, 24, 226, 1)"
-            : "0 18px 45px rgba(0, 0, 0, 0.6)",
+          boxShadow:
+            bassLevel > 0.79
+              ? "0 18px 45px rgba(113, 24, 226, 1)"
+              : "0 18px 45px rgba(0, 0, 0, 0.6)",
         }}
       >
         <div className="header">
           <div className="station">Ricalgen FM</div>
-          <div className="live"><span className="dot"></span>LIVE</div>
+          <div className="live">
+            <span className="dot"></span>LIVE
+          </div>
         </div>
 
         <div className="main">
           <div className="artwork">
             <div className="fg" ref={fgRef}></div>
+            <div className="placeholder">🎵</div>
           </div>
 
           <div className="meta">
@@ -182,9 +324,7 @@ export default function Player() {
               <button className="play" onClick={handlePlay}>
                 {playing ? "⏸" : "▶"}
               </button>
-              <span className="vol-icon">
-                {volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
-              </span>
+              <span className="vol-icon">{volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}</span>
               <input
                 type="range"
                 min="0"
@@ -193,16 +333,31 @@ export default function Player() {
                 value={volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
               />
-              <select
-                className="server-select"
-                value={server}
-                onChange={(e) => setServer(e.target.value)}
-              >
-                <option value="railway">Railway (Default)</option>
-                <option value="zeno">Zeno FM</option>
-              </select>
               <div className="status">{status}</div>
             </div>
+          </div>
+
+          <div className="speaker-wrapper">
+            <div
+              className="speaker inside"
+              style={{
+                filter:
+                  bassLevel > 0.78 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none",
+                transform: `translate(-50%, -50%) scale(${
+                  1.2 + Math.min(Math.max((pianoLevel - 0.345) / (0.656 - 0.345), 0), 1) * 0.03
+                })`,
+              }}
+            ></div>
+            <div className="speaker inside2" style={{ borderWidth: `${pianoLevel * 30}px` }}></div>
+            <div
+              className="speaker center"
+              style={{
+                transform: `translate(-50%, -50%) scale(${
+                  bassLevel > 0.78 || pianoLevel > 0.6 ? 0.89 : 0.9
+                })`,
+              }}
+            ></div>
+            <div className="speaker border"></div>
           </div>
         </div>
 
@@ -214,7 +369,7 @@ export default function Player() {
               </a>
             ))}
           </div>
-          <div className="meta-version">Ricalgen FM Player</div>
+          <div className="meta-version">Ricalgen FM player</div>
         </div>
       </div>
       <audio ref={audioRef}></audio>
