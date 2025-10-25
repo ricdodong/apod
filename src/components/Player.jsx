@@ -291,7 +291,7 @@ return () => clearInterval(interval);
         className="card"
         style={{
           boxShadow:
-            bassLevel > 0.80
+            bassLevel > 0.81
               ? "0 18px 45px rgba(113, 24, 226, 1)"
               : "0 18px 45px rgba(0, 0, 0, 0.6)",
         }}
