@@ -49,7 +49,7 @@ export default function Player() {
   const analyserRef = useRef(null);
 
   // fallback station logo
-  const STATION_LOGO = "/ricalgenfm.png";
+  const STATION_LOGO = "../assets/ricalgenfm.jpg";
 
   useEffect(() => {
     const audio = audioRef.current;
