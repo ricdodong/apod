@@ -251,7 +251,7 @@ const fetchMetadata = async () => {
 // initial fetch
 fetchMetadata();
 // repeat every 5 seconds
-const interval = setInterval(fetchMetadata, 5000);
+const interval = setInterval(fetchMetadata, 2000);
 
 // cleanup
 return () => clearInterval(interval);
