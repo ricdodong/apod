@@ -230,39 +230,31 @@ export default function Player() {
       return STATION_LOGO;
     }
 
-    // SSE metadata
-    const source = new EventSource(
-      "https://ricalgenfm.up.railway.app/status-json.xsl"
-    );
+  // Metadata polling (replaces SSE)
+const fetchMetadata = async () => {
+  try {
+    const res = await fetch("https://ricalgenfm.up.railway.app/status-json.xsl");
+    const data = await res.json();
+    const current = data.icestats.source;
+    const songTitle = current.title || current.server_name || "Live Stream";
 
-    source.onmessage = async (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const songTitle = data.streamTitle || data.title || "";
-        if (!songTitle) return;
+    setTitle(songTitle);
+    document.title = `🎶 ${songTitle} | Ricalgen FM`;
 
-        console.log("📻 Now playing:", songTitle);
-        setTitle(songTitle);
-        document.title = `🎶 ${songTitle} | Ricalgen FM`;
+    const art = await getArtwork(songTitle);
+    await applyArtwork(art);
+  } catch (err) {
+    console.warn("Failed to fetch metadata:", err);
+  }
+};
 
-        const art = await getArtwork(songTitle);
-        // art here should be either a local path (/artworks/...) or a remote URL
-        await applyArtwork(art);
-      } catch (err) {
-        console.warn("Metadata parse error:", err);
-      }
-    };
+// initial fetch
+fetchMetadata();
+// repeat every 5 seconds
+const interval = setInterval(fetchMetadata, 5000);
 
-    source.onerror = (err) => {
-      console.warn("Zeno metadata error:", err);
-      // keep connection open (browser will attempt reconnect); no throw
-    };
-
-    return () => {
-      try {
-        source.close();
-      } catch {}
-    };
+// cleanup
+return () => clearInterval(interval);
   }, []);
 
   // 🔊 Volume
