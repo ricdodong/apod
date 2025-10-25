@@ -276,7 +276,7 @@ export default function Player() {
     if (!audio || !audioCtx) return;
     if (audioCtx.state === "suspended") await audioCtx.resume();
 
-    if (!audio.src) audio.src = `http://interchange.proxy.rlwy.net:41091/live`;
+    if (!audio.src) audio.src = `https://ricalgenfm.up.railway.app/live`;
     try {
       if (audio.paused) {
         await audio.play();
