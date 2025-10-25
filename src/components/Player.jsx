@@ -232,7 +232,7 @@ export default function Player() {
 
     // SSE metadata
     const source = new EventSource(
-      "https://api.zeno.fm/mounts/metadata/subscribe/wngolqwah00tv"
+      "https://ricalgenfm.up.railway.app/status-json.xsl"
     );
 
     source.onmessage = async (event) => {
