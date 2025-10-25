@@ -291,7 +291,7 @@ return () => clearInterval(interval);
         className="card"
         style={{
           boxShadow:
-            bassLevel > 0.82
+            bassLevel > 0.83
               ? "0 18px 45px rgba(113, 24, 226, 1)"
               : "0 18px 45px rgba(0, 0, 0, 0.6)",
         }}
@@ -334,7 +334,7 @@ return () => clearInterval(interval);
               className="speaker inside"
               style={{
                 filter:
-                  bassLevel > 0.82 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none",
+                  bassLevel > 0.83 ? "drop-shadow(0 0 10px rgba(84,87,247,0.6))" : "none",
                 transform: `translate(-50%, -50%) scale(${
                   1.2 + Math.min(Math.max((pianoLevel - 0.345) / (0.656 - 0.345), 0), 1) * 0.03
                 })`,
