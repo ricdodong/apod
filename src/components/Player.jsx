@@ -49,7 +49,7 @@ export default function Player() {
   const analyserRef = useRef(null);
 
   // fallback station logo
-  const STATION_LOGO = "https://static.zeno.fm/stations/6a97e483-6f54-4ef8-aee3-432441265aed.png";
+  const STATION_LOGO = "/ricalgenfm.png";
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -276,7 +276,7 @@ export default function Player() {
     if (!audio || !audioCtx) return;
     if (audioCtx.state === "suspended") await audioCtx.resume();
 
-    if (!audio.src) audio.src = `https://stream.zeno.fm/wngolqwah00tv`;
+    if (!audio.src) audio.src = `https://ricalgenfm.up.railway.app/live`;
     try {
       if (audio.paused) {
         await audio.play();
