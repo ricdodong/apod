@@ -310,7 +310,7 @@ return () => clearInterval(interval);
           </div>
 
           <div className="meta">
-            <div className="title">{title}</div>
+            <div className="title"><marquee>{title}</marquee></div>
             <div className="controls-wrap">
               <canvas className="visualizer" ref={canvasRef}></canvas>
               <button className="play" onClick={handlePlay}>
