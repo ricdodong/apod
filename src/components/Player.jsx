@@ -196,7 +196,7 @@ export default function Player() {
       }
     }
 
-    
+
     // getArtwork uses youtube -> spotify -> fallback and caches via cacheArtwork util
     async function getArtwork(songTitle) {
       // try to get YouTube artwork first
@@ -311,7 +311,7 @@ return () => clearInterval(interval);
           </div>
 
           <div className="meta">
-          <marquee><div className="title">{title}</div></marquee>
+         <div className="title"> <marquee>{title}</marquee></div>
             <div className="controls-wrap">
               <canvas className="visualizer" ref={canvasRef}></canvas>
               <button className="play" onClick={handlePlay}>
