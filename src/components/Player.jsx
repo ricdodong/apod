@@ -196,6 +196,7 @@ export default function Player() {
       }
     }
 
+    
     // getArtwork uses youtube -> spotify -> fallback and caches via cacheArtwork util
     async function getArtwork(songTitle) {
       // try to get YouTube artwork first
